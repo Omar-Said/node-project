@@ -1,13 +1,11 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import cache from "memory-cache";
-
-const sortByParams = ["id", "reads", "likes", "popularity"];
-const directionParams = ["asc", "desc"];
+import { Direction, SortBy, IPosts } from "../common/types";
 
 interface IPostsParams {
   tags: string;
-  sortBy?: typeof sortByParams;
-  direction?: typeof directionParams;
+  sortBy?: SortBy;
+  direction?: Direction;
 }
 
 // add try catch
@@ -18,12 +16,56 @@ const getPosts = async (ping: boolean = false, queryParam?: IPostsParams) => {
   //   return JSON.parse(cache.get("posts"));
   // }
 
-  const posts = await axios.get(
-    `https://api.hatchways.io/assessment/blog/posts?tag=${queryParam?.tags}`
-  );
-  cache.put("posts", JSON.stringify(posts.data.posts), 60000);
+  const tags = queryParam?.tags;
+  const sortBy = queryParam?.sortBy || SortBy.ID;
+  const direction = queryParam?.direction || Direction.ASC;
 
-  return posts.data.posts;
+  const postTags: any[] = [];
+
+  if (tags?.includes(",")) {
+    postTags.push(...tags.split(","));
+  } else {
+    postTags.push(tags);
+  }
+
+  const requestURLs = postTags.map((tag) => {
+    return axios.get<IPosts[]>(
+      `https://api.hatchways.io/assessment/blog/posts?tag=${tag}`
+    );
+  });
+
+  const result = await Promise.all(requestURLs);
+  let posts: IPosts[] = [];
+
+  if (result.length > 0) {
+    posts = addPosts(result);
+  }
+
+  if (sortBy) {
+    sortPosts(posts, direction, sortBy);
+  }
+
+  return posts;
 };
 
-export { getPosts, sortByParams, directionParams };
+const sortPosts = (posts: IPosts[], direction: Direction, sortBy: SortBy) => {
+  posts.sort((a: IPosts, b: IPosts) => {
+    return direction === Direction.ASC
+      ? a[sortBy] - b[sortBy]
+      : b[sortBy] - a[sortBy];
+  });
+};
+
+const addPosts = (result: AxiosResponse<any, any>[]) => {
+  const posts: IPosts[] = [];
+
+  result.forEach(({ data }) => {
+    console.log("ADD SOME TEXT PLEAE", data);
+    posts.push(...data.posts);
+  });
+
+  return posts;
+};
+
+export { getPosts, SortBy, Direction };
+// cache.put("posts", JSON.stringify(posts.data.posts), 60000);
