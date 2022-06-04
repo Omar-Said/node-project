@@ -44,15 +44,15 @@ const getPosts = async (ping: boolean = false, queryParam?: IPostsParams) => {
     posts.push(...addPosts(result));
   }
 
-  if (sortBy) {
-    sortPosts(posts, direction, sortBy);
-  }
-
-  return posts;
+  return sortPosts(
+    _.uniqBy(posts, (post) => post.id),
+    direction,
+    sortBy
+  );
 };
 
 const sortPosts = (posts: IPosts[], direction: Direction, sortBy: SortBy) => {
-  posts.sort((a: IPosts, b: IPosts) => {
+  return posts.sort((a: IPosts, b: IPosts) => {
     return direction === Direction.ASC
       ? a[sortBy] - b[sortBy]
       : b[sortBy] - a[sortBy];
