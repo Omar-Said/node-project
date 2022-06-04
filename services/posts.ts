@@ -2,6 +2,7 @@ import axios, { AxiosResponse } from "axios";
 import cache from "memory-cache";
 import { Direction, SortBy, IPosts } from "../common/types";
 import _ from "lodash";
+import { API_URL } from "../common/config";
 
 interface IPostsParams {
   tags: string;
@@ -9,8 +10,7 @@ interface IPostsParams {
   direction?: Direction;
 }
 
-// add try catch
-const getPosts = async (ping: boolean = false, queryParam?: IPostsParams) => {
+const getPosts = async (queryParam?: IPostsParams) => {
   const tags = queryParam?.tags;
   const sortBy = queryParam?.sortBy || SortBy.ID;
   const direction = queryParam?.direction || Direction.ASC;
@@ -28,11 +28,7 @@ const getPosts = async (ping: boolean = false, queryParam?: IPostsParams) => {
   postTags.forEach((tag) => {
     const postsFromCache = getPostsFromCache(tag);
     if (postsFromCache.length === 0) {
-      requestURLs.push(
-        axios.get<IPosts[]>(
-          `https://api.hatchways.io/assessment/blog/posts?tag=${tag}`
-        )
-      );
+      requestURLs.push(axios.get<IPosts[]>(`${API_URL}${tag}`));
     } else {
       posts.push(...postsFromCache);
     }
@@ -92,7 +88,7 @@ const getPostsFromCache = (tag: string) => {
     posts.push(...JSON.parse(cache.get(tag)));
   }
 
-  return posts;
+  return [];
 };
 
 export { getPosts, SortBy, Direction };
